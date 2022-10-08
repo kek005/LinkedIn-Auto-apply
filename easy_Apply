@@ -1,0 +1,214 @@
+import time,os,math,random
+import utils,constants
+ 
+from selenium import webdriver
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
+from utils import prGreen,prRed,prYellow
+
+from dotenv import load_dotenv
+
+class Linkedin:
+    def __init__(self):
+        load_dotenv()
+
+        self.driver = webdriver.Firefox(options=self.browser_options())
+
+    def browser_options(self):
+        options = Options()
+        firefoxProfileRootDir = os.getenv('firefoxProfileRootDir')
+   
+        options.add_argument("--start-maximized")
+        options.add_argument("--ignore-certificate-errors")
+        options.add_argument('--no-sandbox')
+        options.add_argument("--disable-extensions")
+
+        options.add_argument("--disable-blink-features")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("-profile")
+        options.add_argument(firefoxProfileRootDir)
+
+        return options
+
+    def Link_job_apply(self):
+        countApplied = 0
+        countJobs = 0
+
+        urlData = utils.getUrlDataFile()
+
+        for url in urlData:        
+            self.driver.get(url)
+            time.sleep(random.uniform(1, constants.botSpeed))
+
+            totalJobs = self.driver.find_element(By.XPATH,'//small').text 
+            totalPages = utils.jobsToPages(totalJobs)
+            time.sleep(random.uniform(1, constants.botSpeed))
+
+            urlWords =  utils.urlToKeywords(url)
+            lineToWrite = "\n Category: " + urlWords[0] + ", Location: " +urlWords[1] + ", Applying " +str(totalJobs)+ " jobs."
+            self.displayWriteResults(lineToWrite)
+            time.sleep(random.uniform(1, constants.botSpeed))
+
+            for page in range(totalPages):
+                currentPageJobs = constants.jobsPerPage * page
+                url = url +"&start="+ str(currentPageJobs)
+                self.driver.get(url)
+                time.sleep(random.uniform(1, constants.botSpeed))
+
+                offersPerPage = self.driver.find_elements(By.XPATH,'//li[@data-occludable-job-id]')
+
+                offerIds = []
+                for offer in offersPerPage:
+                    offerId = offer.get_attribute("data-occludable-job-id")
+                    offerIds.append(int(offerId.split(":")[-1]))
+
+                for jobID in offerIds:
+                    offerPage = 'https://www.linkedin.com/jobs/view/' + str(jobID)
+                    self.driver.get(offerPage)
+                    time.sleep(random.uniform(1, constants.botSpeed))
+
+                    countJobs += 1
+
+                    jobProperties = self.getJobProperties(countJobs)
+
+                    titreJob = self.driver.find_element(By.XPATH,"//h1[contains(@class, 'job-title')]").get_attribute("innerHTML").strip()
+                    qaJob = ["Software QA Engineer", "Coding Quality Analyst", "QA Testing Engineer", "Associate QA Analyst - REMOTE", "Quality Assurance Engineer (Remote or Local)", "Quality Assurance Analyst I", "QA Analyst (Live anywhere)", "Jr. SQA", "Automation QA (Remote)", "Quality Assurance Team Lead", "Lead Quality Assurance Engineer", "Software Quality Assurance Engineer (Python)", "APPLICATION TESTING SPECIALIST", "Quality Assurance Specialist", "QA Engineer", "Manual Test Engineer", "Software Engineer In Test", "Software QA Engineer", "Quality Engineer II", "QA Analyst", "QA Analyst Workday", "Software Development Engineer in Test II", "Test Engineer", "QA Analyst Engineer", "Manual Quality Assurance Engineer", "Product Tester", "Manual Tester with Automation Testing Exp.", "QA Mobile Tester", "End to End Automated Tester", "Mobile Automation Tester", "SDET Automation", "Software Engineer In Test", "Software Engineer In Test 2", "Senior Software Development Engineer in Test", "API tester", "Python Test Automation Engineer", "Experienced Insurance Quality Assurance for TPA - Remote", "Software Quality Assurance Automation Engineer | Remote", "SOFTWARE QA ENGINEER-Healthcare, Digital Apps", "Associate QA Analyst - REMOTE", "Software Development Engineer In Test", "Software Engineer In Test", "Software Test Engineer / SDET - (Remote - US)", "Validation Tester", "Python Tester", "Software QA Tester I", "QA Engineer: Domestic-Tech Testing", "REMOTE Software Development Engineer in Test (SDET)", "QA Analyst (Mobile)", "Software Test Engineer / SDET - (Remote - US)", "REMOTE - Software Test Engineer", "QA Tester (Contract)", "QA Web Automation Engineer", "Software Quality Assurance Automation Engineer | Remote", "SDET -Software Development Engineer in Test", "QA SDET TESTER", "QA Tester (Payments)", "QA Automation + Content Testing", "Jr. Software Tester", "Bluetooth QA Engineer", "QA SDET", "Junior Test Analyst", "Software Automation QA Engineer", "QA Documentation Specialist", "Android Test Engineer", "QA Test Script Engineer", "QA SDET TESTER", "QA Engineer Automated", "Junior Quality Assurance Engineer", "Software Engineer in Test", "QA Automation Engineer", "QA Lead", "SDET", "SDET/QA Lead", "Test Automation Engineer", "Quality Assurance Analyst I", "QA Selenium Engineer  (Entry Level)", "Senior QA Analyst", "Senior Software QA Engineer", "QA Automation with Python", "Software Quality Assurance Engineer", "Software Test Engineer", "QA Tester", "Software QA Test Engineer", "QA Engineer", "Manual Tester", "Manual Quality Assurance Engineer", "QA Selenium Engineer", "Quality Assurance Specialist", "Business Analyst / QA", "Sr. Manual QA Engineer", "Senior Quality Assurance Analyst", "QA Analyst (manual)", "IT SQA Analyst", "QA Performance Tester", "Sr.mobile Selenium Tester - 100% Remote", "Automation Test Engineer", "Software Development Engineer in Test (sdet)", "Software Development Engineer in Test (sdet senior)", "Remote Software Development Engineer in Test (sdet)", "Senior QA Specialist", "Senior QA Analyst (remote)", "Sr. Quality Analyst (remote)", "Salesforce QA Tester", "QA Selenium Engineer  (entry level)", "Quality Assurance Automation Engineer", "Associate QA Analyst - Remote", "Quality Assurance", "Software Quality Assurance Analyst and Customer Support Specialist", "QA Automation Engineer - Remote", "Senior Software QC Engineer", "Software Test Engineer-Automation", "SDET with Batch Testing Experience", "Senior Test Engineer", "Software Automation QA"]
+                    newJob = []
+
+                    if titreJob in qaJob:
+
+                        button = self.easyApplyButton()
+
+                        if button is not False:
+                            button.click()
+                            time.sleep(random.uniform(1, constants.botSpeed))
+                            countApplied += 1
+                        try:
+                                self.driver.find_element(By.CSS_SELECTOR, "button[aria-label='Submit application']").click()
+                                time.sleep(random.uniform(1, constants.botSpeed))
+
+
+                                ineToWrite = jobProperties + " | " + "* 🥳 Just Applied to this job: "  +str(offerPage)
+                                self.displayWriteResults(lineToWrite)
+
+                        except:
+                            try:
+                                self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Continue to next step']").click()
+                                time.sleep(random.uniform(1, constants.botSpeed))
+
+                                comPercentage = self.driver.find_element(By.XPATH,'html/body/div[3]/div/div/div[2]/div/div/span').text
+                                percenNumber = int(comPercentage[0:comPercentage.index("%")])
+                                result = self.applyProcess(percenNumber,offerPage)
+                                lineToWrite = jobProperties + " | " + result
+                                self.displayWriteResults(lineToWrite)
+                            
+                            except Exception as e: 
+                                lineToWrite = jobProperties + " | " + "* 🥵 Cannot apply to this Job! " +str(offerPage)
+                                self.displayWriteResults(lineToWrite)
+                        else:
+                            lineToWrite = jobProperties + " | " + "* 🥳 Already applied! Job: " +str(offerPage)
+                            self.displayWriteResults(lineToWrite)
+                    else:
+                        lineToWrite = jobProperties + " | " + "* 🥵 this job is not for qa! " +str(offerPage)
+                        newJob.append[titreJob]
+                        self.displayWriteResults(lineToWrite)
+
+
+
+        prYellow("Category: " + urlWords[0] + "," +urlWords[1]+ " applied: " + str(countApplied) +
+                  " jobs out of " + str(countJobs) + ".\n"+ " voici la list des jobs non QA\n" + list(newJob))
+        
+        self.donate()
+
+    def getJobProperties(self, count):
+        textToWrite = ""
+        jobTitle = ""
+        jobCompany = ""
+        jobLocation = ""
+        jobWOrkPlace = ""
+        jobPostedDate = ""
+        jobApplications = ""
+
+        try:
+            jobTitle = self.driver.find_element(By.XPATH,"//h1[contains(@class, 'job-title')]").get_attribute("innerHTML").strip()
+            titreJob = jobTitle
+        except Exception as e:
+            prRed("Error in getting jobTitle: " +str(e))
+            jobTitle = "error getting jobTitle"
+        try:
+            jobCompany = self.driver.find_element(By.XPATH,"//a[contains(@class, 'ember-view t-black t-normal')]").get_attribute("innerHTML").strip()
+        except Exception as e:
+            prRed("Error in getting jobCompany: " +str(e))
+            jobCompany = ""
+        try:
+            jobLocation = self.driver.find_element(By.XPATH,"//span[contains(@class, 'bullet')]").get_attribute("innerHTML").strip()
+        except Exception as e:
+            prRed("Error in getting jobLocation: " +str(e))
+            jobLocation = ""
+        try:
+            jobWOrkPlace = self.driver.find_element(By.XPATH,"//span[contains(@class, 'workplace-type')]").get_attribute("innerHTML").strip()
+        except Exception as e:
+            prRed("Error in getting jobWOrkPlace: " +str(e))
+            jobWOrkPlace = ""
+        try:
+            jobPostedDate = self.driver.find_element(By.XPATH,"//span[contains(@class, 'posted-date')]").get_attribute("innerHTML").strip()
+        except Exception as e:
+            prRed("Error in getting jobPostedDate: " +str(e))
+            jobPostedDate = ""
+        try:
+            jobApplications= self.driver.find_element(By.XPATH,"//span[contains(@class, 'applicant-count')]").get_attribute("innerHTML").strip()
+        except Exception as e:
+            prRed("Error in getting jobApplications: " +str(e))
+            jobApplications = ""
+
+        textToWrite = str(count)+ " | " +jobTitle+  " | " +jobCompany+  " | "  +jobLocation+ " | "  +jobWOrkPlace+ " | " +jobPostedDate+ " | " +jobApplications
+        return textToWrite
+
+    def easyApplyButton(self):
+        try:
+            button = self.driver.find_element(By.XPATH,
+                '//button[contains(@class, "jobs-apply-button")]')
+            EasyApplyButton = button
+        except: 
+            EasyApplyButton = False
+
+        return EasyApplyButton
+
+    def applyProcess(self, percentage, offerPage):
+        applyPages = math.floor(100 / percentage) 
+        result = ""  
+        try:
+            for pages in range(applyPages-2):
+                self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Continue to next step']").click()
+                time.sleep(random.uniform(1, constants.botSpeed))
+
+            self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Review your application']").click() 
+            time.sleep(random.uniform(1, constants.botSpeed))
+
+            self.driver.find_element(By.CSS_SELECTOR,"button[aria-label='Submit application']").click()
+            time.sleep(random.uniform(1, constants.botSpeed))
+
+            result = "* 🥳 Just Applied to this job: " +str(offerPage)
+        except:
+            result = "* 🥵 " +str(applyPages)+ " Pages, couldn't apply to this job! Extra info needed. Link: " +str(offerPage)
+        return result
+    
+    def donate(self):
+        prYellow('If you like the project, please support me so that i can make more such projects, thanks!')
+        try:
+            self.driver.get('https://commerce.coinbase.com/checkout/923b8005-792f-4874-9a14-2992d0b30685')
+        except Exception as e:
+            prRed("Error in donate: " +e)
+
+    def displayWriteResults(self,lineToWrite: str):
+        try:
+            print(lineToWrite)
+            utils.writeResults(lineToWrite)
+        except Exception as e:
+            prRed("Error in DisplayWriteResults: " +e)
+
+
+start = time.time()
+Linkedin().Link_job_apply()
+end = time.time()
+prYellow("---Took: " + str(round((time.time() - start)/60)) + " minute(s).")
